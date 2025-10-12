@@ -2,6 +2,101 @@ pub mod game;
 pub mod parser;
 mod ui;
 
-fn main() {
-    println!("Smart Game Viewer v0.1.0");
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::env;
+use std::fs;
+use std::io;
+
+fn main() -> Result<(), io::Error> {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        eprintln!("Usage: {} <sgf-file>", args[0]);
+        std::process::exit(1);
+    }
+
+    let sgf_path = &args[1];
+    let sgf_content = fs::read_to_string(sgf_path).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Failed to read {}: {}", sgf_path, e),
+        )
+    })?;
+
+    let game_tree = parser::parse_sgf(&sgf_content).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Failed to parse SGF: {:?}", e),
+        )
+    })?;
+
+    // Extract board size from properties (default to 19)
+    let board_size = game_tree
+        .properties
+        .get("SZ")
+        .and_then(|v| v.first())
+        .and_then(|s| s.parse::<u8>().ok())
+        .unwrap_or(19);
+
+    let mut game_state = game::GameState::new(board_size, game_tree.moves);
+
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // Run app
+    let res = run_app(&mut terminal, &mut game_state);
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        eprintln!("Error: {:?}", err);
+    }
+
+    Ok(())
+}
+
+fn run_app(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    game_state: &mut game::GameState,
+) -> io::Result<()> {
+    loop {
+        terminal.draw(|f| ui::render_game(f, game_state))?;
+
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                    KeyCode::Left => {
+                        game_state.previous();
+                    }
+                    KeyCode::Right => {
+                        game_state.next();
+                    }
+                    KeyCode::Home => {
+                        game_state.jump_to_start();
+                    }
+                    KeyCode::End => {
+                        game_state.jump_to_end();
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
 }
