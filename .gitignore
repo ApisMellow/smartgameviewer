@@ -1,0 +1,25 @@
+# Worktrees
+.worktrees/
+
+# Rust
+target/
+Cargo.lock
+*.rs.bk
+*.pdb
+
+# devenv
+.devenv/
+.direnv/
+devenv.local.nix
+.pre-commit-config.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
