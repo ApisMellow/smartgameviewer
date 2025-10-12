@@ -28,9 +28,9 @@ fn test_parse_simple_moves() {
     let game = result.unwrap();
     assert_eq!(game.moves.len(), 4);
     assert_eq!(game.moves[0].color, Color::Black);
-    assert_eq!(game.moves[0].position, Some((3, 3))); // 'dd' = (3,3)
+    assert_eq!(game.moves[0].position, Some((3, 3))); // 'dd' = (row 3, col 3)
     assert_eq!(game.moves[1].color, Color::White);
-    assert_eq!(game.moves[1].position, Some((15, 3))); // 'pd' = (15,3)
+    assert_eq!(game.moves[1].position, Some((3, 15))); // 'pd' = (row 3, col 15)
 }
 
 #[test]

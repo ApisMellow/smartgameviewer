@@ -26,6 +26,8 @@ pub enum ParseError {
 
 // Convert SGF coordinates (e.g., "dd") to board position (3, 3)
 // SGF uses 'a' = 0, 'b' = 1, etc.
+// SGF format is column-first (horizontal), then row (vertical)
+// But we return (row, col) to match Board's grid[row][col] indexing
 fn sgf_to_coords(s: &str) -> Option<(u8, u8)> {
     if s.is_empty() {
         return None; // Pass move
@@ -40,7 +42,7 @@ fn sgf_to_coords(s: &str) -> Option<(u8, u8)> {
     let row = bytes[1].wrapping_sub(b'a');
 
     if col < 19 && row < 19 {
-        Some((col, row))
+        Some((row, col)) // Return (row, col) to match Board indexing
     } else {
         None
     }
