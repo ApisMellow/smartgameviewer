@@ -1,5 +1,5 @@
 mod game;
-mod parser;
+pub mod parser;
 mod ui;
 
 fn main() {
