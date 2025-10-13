@@ -1,0 +1,14 @@
+[package]
+name = "smartgameviewer"
+version = "0.1.0"
+edition = "2021"
+authors = ["ApisMellow"]
+license = "MIT"
+description = "A beautiful terminal-based viewer for SGF Go game files"
+repository = "https://github.com/ApisMellow/smartgameviewer"
+
+[dependencies]
+ratatui = "0.28"
+crossterm = "0.28"
+
+[dev-dependencies]
