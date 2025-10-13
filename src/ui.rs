@@ -2,12 +2,13 @@ use crate::game::{Board, GameState};
 use crate::parser::Color;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color as RatatuiColor, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-pub fn render_game(frame: &mut Frame, game: &GameState) {
+pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -19,11 +20,20 @@ pub fn render_game(frame: &mut Frame, game: &GameState) {
 
     render_header(frame, chunks[0], game);
     render_board(frame, chunks[1], &game.board);
-    render_status(frame, chunks[2], game);
+    render_status(frame, chunks[2], game, auto_play);
 }
 
-fn render_header(frame: &mut Frame, area: Rect, _game: &GameState) {
-    let text = Line::from(vec![Span::raw("Smart Game Viewer")]);
+fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
+    let black_player = game.get_property("PB").unwrap_or("Black");
+    let white_player = game.get_property("PW").unwrap_or("White");
+    let game_name = game.get_property("GN").unwrap_or("Go Game");
+
+    let text = Line::from(vec![
+        Span::raw(format!("{} | ", game_name)),
+        Span::styled(black_player, Style::default().fg(RatatuiColor::White)),
+        Span::raw(" vs "),
+        Span::styled(white_player, Style::default().fg(RatatuiColor::Gray)),
+    ]);
 
     let paragraph = Paragraph::new(text)
         .alignment(Alignment::Center)
@@ -83,11 +93,31 @@ fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
     frame.render_widget(paragraph, area);
 }
 
-fn render_status(frame: &mut Frame, area: Rect, game: &GameState) {
+fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool) {
+    let play_status = if auto_play { "[PLAYING]" } else { "[PAUSED]" };
+
+    let current_move_info = if game.current_move > 0 && game.current_move <= game.moves.len() {
+        let mv = &game.moves[game.current_move - 1];
+        let color = match mv.color {
+            Color::Black => "Black",
+            Color::White => "White",
+        };
+        let pos = if let Some((row, col)) = mv.position {
+            format!("{}{}", (b'A' + col) as char, row + 1)
+        } else {
+            "Pass".to_string()
+        };
+        format!(" | {} {}", color, pos)
+    } else {
+        "".to_string()
+    };
+
     let move_info = format!(
-        "Move {}/{} | ← → Step | Space Play/Pause | Q Quit",
+        "Move {}/{}{} {} | ← → Step | Space Play/Pause | Q Quit",
         game.current_move,
-        game.moves.len()
+        game.moves.len(),
+        current_move_info,
+        play_status
     );
 
     let paragraph = Paragraph::new(move_info)

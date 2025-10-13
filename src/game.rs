@@ -1,4 +1,5 @@
 use crate::parser::{Color, Move};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Board {
@@ -31,6 +32,7 @@ pub struct GameState {
     pub board: Board,
     pub moves: Vec<Move>,
     pub current_move: usize, // 0 = empty board, 1 = after first move, etc.
+    pub properties: HashMap<String, Vec<String>>, // Game metadata
 }
 
 impl GameState {
@@ -39,7 +41,28 @@ impl GameState {
             board: Board::new(board_size),
             moves,
             current_move: 0,
+            properties: HashMap::new(),
         }
+    }
+
+    pub fn with_properties(
+        board_size: u8,
+        moves: Vec<Move>,
+        properties: HashMap<String, Vec<String>>,
+    ) -> Self {
+        GameState {
+            board: Board::new(board_size),
+            moves,
+            current_move: 0,
+            properties,
+        }
+    }
+
+    pub fn get_property(&self, key: &str) -> Option<&str> {
+        self.properties
+            .get(key)
+            .and_then(|v| v.first())
+            .map(|s| s.as_str())
     }
 
     pub fn next(&mut self) -> bool {
