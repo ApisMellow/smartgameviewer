@@ -259,25 +259,36 @@ fn render_status(
         ));
     }
 
-    // Playback speed with animated star
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
+    // Playback speed with animated star (only animates when playing)
+    let star = if auto_play {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
 
-    // Star cycles through 5 frames at a rate matching the playback speed
-    // Animation cycle matches the move speed for visual rhythm
-    let frame_duration = 3000 / playback_speed / 5; // 5 frames per move cycle
-    let animation_frame = (now / frame_duration as u128) % 5;
+        // Star cycles through 5 frames at a rate matching the playback speed
+        // Animation cycle matches the move speed for visual rhythm
+        let move_duration = match playback_speed {
+            1 => 3000,
+            2 => 1500,
+            3 => 500,
+            _ => 3000,
+        };
+        let frame_duration = move_duration / 5; // 5 frames per move cycle
+        let animation_frame = (now / frame_duration as u128) % 5;
 
-    // Smooth animation cycle: . -> + -> * -> ✦ -> * -> (repeat)
-    let star = match animation_frame {
-        0 => "·", // Dim dot
-        1 => "+", // Small plus
-        2 => "*", // Asterisk
-        3 => "✦", // Bright star
-        4 => "*", // Asterisk (fade back)
-        _ => "·",
+        // Smooth animation cycle: . -> + -> * -> ✦ -> * -> (repeat)
+        match animation_frame {
+            0 => "·", // Dim dot
+            1 => "+", // Small plus
+            2 => "*", // Asterisk
+            3 => "✦", // Bright star
+            4 => "*", // Asterisk (fade back)
+            _ => "·",
+        }
+    } else {
+        // Show static dim dot when paused
+        "·"
     };
 
     spans.push(Span::raw(" "));
