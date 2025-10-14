@@ -265,12 +265,19 @@ fn render_status(
         .unwrap()
         .as_millis();
 
-    // Star blinks at a rate matching the playback speed
-    let blink_interval = 1500 / playback_speed; // Same rhythm as move speed
-    let star = if (now / blink_interval as u128) % 2 == 0 {
-        "✦" // Bright star
-    } else {
-        "✧" // Dim star
+    // Star cycles through 5 frames at a rate matching the playback speed
+    // Animation cycle matches the move speed for visual rhythm
+    let frame_duration = 3000 / playback_speed / 5; // 5 frames per move cycle
+    let animation_frame = (now / frame_duration as u128) % 5;
+
+    // Smooth animation cycle: . -> + -> * -> ✦ -> * -> (repeat)
+    let star = match animation_frame {
+        0 => "·", // Dim dot
+        1 => "+", // Small plus
+        2 => "*", // Asterisk
+        3 => "✦", // Bright star
+        4 => "*", // Asterisk (fade back)
+        _ => "·",
     };
 
     spans.push(Span::raw(" "));

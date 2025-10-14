@@ -81,8 +81,8 @@ fn run_app(
     let mut playback_speed = 1; // 1x, 2x, or 3x speed
 
     loop {
-        // Calculate delay based on speed (1500ms / speed)
-        let auto_play_delay = std::time::Duration::from_millis(1500 / playback_speed);
+        // Calculate delay based on speed: 3000ms at 1x, 1500ms at 2x, 1000ms at 3x
+        let auto_play_delay = std::time::Duration::from_millis(3000 / playback_speed);
 
         terminal.draw(|f| ui::render_game(f, game_state, auto_play, playback_speed))?;
 
