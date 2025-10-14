@@ -33,7 +33,7 @@ pub struct GameState {
     pub moves: Vec<Move>,
     pub current_move: usize, // 0 = empty board, 1 = after first move, etc.
     pub properties: HashMap<String, Vec<String>>, // Game metadata
-    looping_enabled: bool, // Whether to loop back to start when reaching the end
+    looping_enabled: bool,   // Whether to loop back to start when reaching the end
 }
 
 impl GameState {

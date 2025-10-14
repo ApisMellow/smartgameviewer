@@ -147,13 +147,11 @@ fn test_game_looping_disabled() {
 
 #[test]
 fn test_toggle_looping() {
-    let moves = vec![
-        Move {
-            color: Color::Black,
-            position: Some((3, 3)),
-            comment: None,
-        },
-    ];
+    let moves = vec![Move {
+        color: Color::Black,
+        position: Some((3, 3)),
+        comment: None,
+    }];
 
     let mut game = GameState::new(19, moves);
 
