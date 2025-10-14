@@ -9,7 +9,7 @@ use ratatui::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
+pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool, playback_speed: u64) {
     // Calculate exact board height (19 lines for 19x19 board)
     let board_height = game.board.size as u16;
 
@@ -25,7 +25,7 @@ pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
 
     render_header(frame, chunks[0], game);
     render_board(frame, chunks[1], &game.board);
-    render_status(frame, chunks[3], game, auto_play);
+    render_status(frame, chunks[3], game, auto_play, playback_speed);
 }
 
 fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
@@ -197,7 +197,13 @@ fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
     frame.render_widget(paragraph, board_area);
 }
 
-fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool) {
+fn render_status(
+    frame: &mut Frame,
+    area: Rect,
+    game: &GameState,
+    auto_play: bool,
+    playback_speed: u64,
+) {
     let mut spans = Vec::new();
 
     // Move counter
@@ -253,9 +259,29 @@ fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: boo
         ));
     }
 
+    // Playback speed with animated star
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    // Star blinks at a rate matching the playback speed
+    let blink_interval = 1500 / playback_speed; // Same rhythm as move speed
+    let star = if (now / blink_interval as u128) % 2 == 0 {
+        "✦" // Bright star
+    } else {
+        "✧" // Dim star
+    };
+
+    spans.push(Span::raw(" "));
+    spans.push(Span::styled(
+        format!("{}x {}", playback_speed, star),
+        Style::default().fg(RatatuiColor::Cyan),
+    ));
+
     // Controls
     spans.push(Span::styled(
-        " | ← → Step | Space Play/Pause | L Loop | Q Quit",
+        " | ← → Step | Space Play/Pause | L Loop | S Speed | Q Quit",
         Style::default().fg(RatatuiColor::DarkGray),
     ));
 

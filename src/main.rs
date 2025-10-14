@@ -76,12 +76,15 @@ fn run_app(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     game_state: &mut game::GameState,
 ) -> io::Result<()> {
-    let mut auto_play = false;
+    let mut auto_play = true; // Start in play mode by default
     let mut last_auto_advance = std::time::Instant::now();
-    let auto_play_delay = std::time::Duration::from_millis(1500); // 1.5 seconds per move
+    let mut playback_speed = 1; // 1x, 2x, or 3x speed
 
     loop {
-        terminal.draw(|f| ui::render_game(f, game_state, auto_play))?;
+        // Calculate delay based on speed (1500ms / speed)
+        let auto_play_delay = std::time::Duration::from_millis(1500 / playback_speed);
+
+        terminal.draw(|f| ui::render_game(f, game_state, auto_play, playback_speed))?;
 
         // Auto-play logic
         if auto_play && last_auto_advance.elapsed() >= auto_play_delay {
@@ -117,6 +120,14 @@ fn run_app(
                     }
                     KeyCode::Char('l') | KeyCode::Char('L') => {
                         game_state.toggle_looping();
+                    }
+                    KeyCode::Char('s') | KeyCode::Char('S') => {
+                        // Cycle through speeds: 1x -> 2x -> 3x -> 1x
+                        playback_speed = if playback_speed >= 3 {
+                            1
+                        } else {
+                            playback_speed + 1
+                        };
                     }
                     _ => {}
                 }
