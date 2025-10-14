@@ -10,18 +10,22 @@ use ratatui::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
+    // Calculate exact board height (19 lines for 19x19 board)
+    let board_height = game.board.size as u16;
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Board
-            Constraint::Length(3), // Status
+            Constraint::Length(3),                // Header
+            Constraint::Length(board_height + 2), // Board + padding
+            Constraint::Min(0),                   // Fill remaining space
+            Constraint::Length(3),                // Status
         ])
         .split(frame.area());
 
     render_header(frame, chunks[0], game);
     render_board(frame, chunks[1], &game.board);
-    render_status(frame, chunks[2], game, auto_play);
+    render_status(frame, chunks[3], game, auto_play);
 }
 
 fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
@@ -29,35 +33,48 @@ fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
     let white_player = game.get_property("PW").unwrap_or("White");
     let game_name = game.get_property("GN").unwrap_or("Go Game");
 
-    // Create moving shine effect for game title
+    // Create moving shine effect for game title with 3-character gradient
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis();
 
-    // Pale orange color (similar to Claude Code thinking line)
-    let base_color = RatatuiColor::Rgb(255, 200, 150);
-    let bright_color = RatatuiColor::Rgb(255, 220, 180);
+    // Pale orange colors with more distinct differences for 3-char gradient
+    let base_color = RatatuiColor::Rgb(255, 190, 140); // Darker base
+    let side_bright_color = RatatuiColor::Rgb(255, 210, 165); // Side glow
+    let center_color = RatatuiColor::Rgb(255, 240, 210); // Very bright center
 
     let mut title_spans = Vec::new();
     let chars: Vec<char> = game_name.chars().collect();
-    let speed = 200; // milliseconds per character
+    let speed = 150; // milliseconds per character
+
+    // Bidirectional movement: right-to-left, pause, left-to-right, pause
+    let cycle_length = (chars.len() as u128 + 4) * 2 + 8; // +4 for pause at each end
+    let position_in_cycle = (now / speed) % cycle_length;
+
+    let shine_center = if position_in_cycle < chars.len() as u128 + 4 {
+        // Moving right-to-left
+        chars.len() as i128 - position_in_cycle as i128
+    } else {
+        // Moving left-to-right (after pause)
+        position_in_cycle as i128 - (chars.len() as i128 + 8)
+    };
 
     for (i, ch) in chars.iter().enumerate() {
-        // Calculate phase for this character based on time and position
-        let phase = ((now / speed) + i as u128) % (chars.len() as u128 * 2);
+        let distance_from_center = i as i128 - shine_center;
 
-        // Create shine wave effect
-        let color = if phase == i as u128 || phase == (chars.len() as u128 * 2 - 1 - i as u128) {
-            bright_color
+        // Create 3-character gradient with clear distinction
+        let style = if distance_from_center == 0 {
+            // Center: brightest with bold
+            Style::default()
+                .fg(center_color)
+                .add_modifier(Modifier::BOLD)
+        } else if distance_from_center == -1 || distance_from_center == 1 {
+            // Adjacent: medium bright (no bold)
+            Style::default().fg(side_bright_color)
         } else {
-            base_color
-        };
-
-        let style = if phase == i as u128 || phase == (chars.len() as u128 * 2 - 1 - i as u128) {
-            Style::default().fg(color).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(color)
+            // Base color for everything else
+            Style::default().fg(base_color)
         };
 
         title_spans.push(Span::styled(ch.to_string(), style));
@@ -150,9 +167,34 @@ fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
         lines.push(Line::from(spans));
     }
 
-    let paragraph = Paragraph::new(lines).alignment(Alignment::Center);
+    // Add padding around the board to create a "board on table" effect
+    // Limit board dimensions, center it if window is larger
+    use ratatui::layout::Margin;
+    let max_board_width = 65;
+    let max_board_height = 27;
 
-    frame.render_widget(paragraph, area);
+    let horizontal_padding = if area.width > max_board_width {
+        (area.width - max_board_width) / 2
+    } else {
+        2 // Minimum padding
+    };
+
+    let vertical_padding = if area.height > max_board_height {
+        (area.height - max_board_height) / 2
+    } else {
+        1 // Minimum padding
+    };
+
+    let board_area = area.inner(Margin {
+        horizontal: horizontal_padding,
+        vertical: vertical_padding,
+    });
+
+    let paragraph = Paragraph::new(lines).alignment(Alignment::Center).block(
+        Block::default().style(Style::default().bg(RatatuiColor::Rgb(210, 180, 140))), // Tan wood color
+    );
+
+    frame.render_widget(paragraph, board_area);
 }
 
 fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool) {
@@ -183,30 +225,30 @@ fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: boo
         spans.push(Span::styled(format!("{} {}", color_text, pos), color_style));
     }
 
-    // Play status
+    // Play status with emoji
     spans.push(Span::raw(" "));
     if auto_play {
         spans.push(Span::styled(
-            "[PLAYING]",
+            "▶️", // Play button emoji
             Style::default().fg(RatatuiColor::Green),
         ));
     } else {
         spans.push(Span::styled(
-            "[PAUSED]",
+            "⏸️", // Pause button emoji
             Style::default().fg(RatatuiColor::Yellow),
         ));
     }
 
-    // Loop status
+    // Loop status with emoji
     spans.push(Span::raw(" "));
     if game.is_looping_enabled() {
         spans.push(Span::styled(
-            "[LOOP]",
+            "🔁", // Repeat/loop emoji
             Style::default().fg(RatatuiColor::Magenta),
         ));
     } else {
         spans.push(Span::styled(
-            "[NO LOOP]",
+            "➡️", // Right arrow emoji (no loop, just forward)
             Style::default().fg(RatatuiColor::DarkGray),
         ));
     }
