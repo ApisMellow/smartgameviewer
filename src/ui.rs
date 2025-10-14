@@ -7,8 +7,9 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
+pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool, playback_speed: u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -20,7 +21,7 @@ pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool) {
 
     render_header(frame, chunks[0], game);
     render_board(frame, chunks[1], &game.board);
-    render_status(frame, chunks[2], game, auto_play);
+    render_status(frame, chunks[2], game, auto_play, playback_speed);
 }
 
 fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
@@ -93,12 +94,26 @@ fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
     frame.render_widget(paragraph, area);
 }
 
-fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool) {
+fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool, playback_speed: u64) {
     let play_status = if auto_play { "[PLAYING]" } else { "[PAUSED]" };
     let loop_status = if game.is_looping_enabled() {
         "[LOOP]"
     } else {
         "[NO LOOP]"
+    };
+
+    // Animated star that pulses at the selected speed
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    // Star blinks at a rate matching the playback speed
+    let blink_interval = 1500 / playback_speed; // Same rhythm as move speed
+    let star = if (now / blink_interval as u128) % 2 == 0 {
+        "✦" // Bright star
+    } else {
+        "✧" // Dim star
     };
 
     let current_move_info = if game.current_move > 0 && game.current_move <= game.moves.len() {
@@ -118,12 +133,14 @@ fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: boo
     };
 
     let move_info = format!(
-        "Move {}/{}{} {} {} | ← → Step | Space Play/Pause | L Loop | Q Quit",
+        "Move {}/{}{} {} {} {}x {} | ← → Step | Space Play/Pause | L Loop | S Speed | Q Quit",
         game.current_move,
         game.moves.len(),
         current_move_info,
         play_status,
-        loop_status
+        loop_status,
+        playback_speed,
+        star
     );
 
     let paragraph = Paragraph::new(move_info)
