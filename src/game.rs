@@ -33,6 +33,7 @@ pub struct GameState {
     pub moves: Vec<Move>,
     pub current_move: usize, // 0 = empty board, 1 = after first move, etc.
     pub properties: HashMap<String, Vec<String>>, // Game metadata
+    looping_enabled: bool, // Whether to loop back to start when reaching the end
 }
 
 impl GameState {
@@ -42,6 +43,7 @@ impl GameState {
             moves,
             current_move: 0,
             properties: HashMap::new(),
+            looping_enabled: true, // Default to looping enabled
         }
     }
 
@@ -55,6 +57,7 @@ impl GameState {
             moves,
             current_move: 0,
             properties,
+            looping_enabled: true, // Default to looping enabled
         }
     }
 
@@ -65,9 +68,29 @@ impl GameState {
             .map(|s| s.as_str())
     }
 
+    pub fn is_looping_enabled(&self) -> bool {
+        self.looping_enabled
+    }
+
+    pub fn set_looping(&mut self, enabled: bool) {
+        self.looping_enabled = enabled;
+    }
+
+    pub fn toggle_looping(&mut self) {
+        self.looping_enabled = !self.looping_enabled;
+    }
+
     pub fn next(&mut self) -> bool {
         if self.current_move >= self.moves.len() {
-            return false; // Already at end
+            // At the end of the game
+            if self.looping_enabled {
+                // Loop back to the beginning
+                self.jump_to_start();
+                return true;
+            } else {
+                // Don't loop, stay at end
+                return false;
+            }
         }
 
         // Apply the move at current_move index
@@ -104,6 +127,14 @@ impl GameState {
     }
 
     pub fn jump_to_end(&mut self) {
-        while self.next() {}
+        // Jump directly to the end without triggering looping behavior
+        self.current_move = 0;
+        self.board = Board::new(self.board.size);
+        for i in 0..self.moves.len() {
+            if let Some(pos) = self.moves[i].position {
+                self.board.set(pos.0, pos.1, self.moves[i].color.clone());
+            }
+        }
+        self.current_move = self.moves.len();
     }
 }

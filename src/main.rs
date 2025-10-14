@@ -115,6 +115,9 @@ fn run_app(
                         auto_play = false;
                         game_state.jump_to_end();
                     }
+                    KeyCode::Char('l') | KeyCode::Char('L') => {
+                        game_state.toggle_looping();
+                    }
                     _ => {}
                 }
             }

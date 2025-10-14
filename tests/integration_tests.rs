@@ -66,6 +66,9 @@ fn test_load_alphago_game5() {
 
     let mut game_state = GameState::new(board_size, game_tree.moves);
 
+    // Disable looping for this test
+    game_state.set_looping(false);
+
     // Test that we can navigate through entire game
     let total_moves = game_state.moves.len();
     for _ in 0..total_moves {
@@ -73,6 +76,6 @@ fn test_load_alphago_game5() {
     }
     assert_eq!(game_state.current_move, total_moves);
 
-    // Verify we can't go past the end
+    // Verify we can't go past the end (with looping disabled)
     assert!(!game_state.next());
 }

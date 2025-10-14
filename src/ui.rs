@@ -95,6 +95,11 @@ fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
 
 fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: bool) {
     let play_status = if auto_play { "[PLAYING]" } else { "[PAUSED]" };
+    let loop_status = if game.is_looping_enabled() {
+        "[LOOP]"
+    } else {
+        "[NO LOOP]"
+    };
 
     let current_move_info = if game.current_move > 0 && game.current_move <= game.moves.len() {
         let mv = &game.moves[game.current_move - 1];
@@ -113,11 +118,12 @@ fn render_status(frame: &mut Frame, area: Rect, game: &GameState, auto_play: boo
     };
 
     let move_info = format!(
-        "Move {}/{}{} {} | ← → Step | Space Play/Pause | Q Quit",
+        "Move {}/{}{} {} {} | ← → Step | Space Play/Pause | L Loop | Q Quit",
         game.current_move,
         game.moves.len(),
         current_move_info,
-        play_status
+        play_status,
+        loop_status
     );
 
     let paragraph = Paragraph::new(move_info)
