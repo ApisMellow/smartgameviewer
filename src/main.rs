@@ -1,5 +1,7 @@
+pub mod board_view;
 pub mod game;
 pub mod parser;
+pub mod playlist;
 mod ui;
 
 use crossterm::{
@@ -12,19 +14,29 @@ use std::env;
 use std::fs;
 use std::io;
 
-fn main() -> Result<(), io::Error> {
-    let args: Vec<String> = env::args().collect();
+use std::time::Instant;
 
-    if args.len() < 2 {
-        eprintln!("Usage: {} <sgf-file>", args[0]);
-        std::process::exit(1);
-    }
+use playlist::PlaylistManager;
 
-    let sgf_path = &args[1];
-    let sgf_content = fs::read_to_string(sgf_path).map_err(|e| {
+enum AppState {
+    Playing {
+        game: game::GameState,
+        auto_play: bool,
+        playback_speed: u64,
+        last_auto_advance: Instant,
+    },
+    Transition {
+        from_title: String,
+        to_title: String,
+        start_time: Instant,
+    },
+}
+
+fn load_game_from_path(path: &std::path::Path) -> Result<game::GameState, io::Error> {
+    let sgf_content = fs::read_to_string(path).map_err(|e| {
         io::Error::new(
             io::ErrorKind::NotFound,
-            format!("Failed to read {}: {}", sgf_path, e),
+            format!("Failed to read {}: {}", path.display(), e),
         )
     })?;
 
@@ -35,7 +47,6 @@ fn main() -> Result<(), io::Error> {
         )
     })?;
 
-    // Extract board size from properties (default to 19)
     let board_size = game_tree
         .properties
         .get("SZ")
@@ -43,8 +54,29 @@ fn main() -> Result<(), io::Error> {
         .and_then(|s| s.parse::<u8>().ok())
         .unwrap_or(19);
 
-    let mut game_state =
-        game::GameState::with_properties(board_size, game_tree.moves, game_tree.properties);
+    Ok(game::GameState::with_properties(
+        board_size,
+        game_tree.moves,
+        game_tree.properties,
+    ))
+}
+
+fn main() -> Result<(), io::Error> {
+    let args: Vec<String> = env::args().collect();
+    let path_arg = args.get(1).map(|s| s.as_str());
+
+    let playlist = PlaylistManager::new(path_arg).map_err(|e| {
+        if path_arg.is_none() {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                "No SGF files found in ./sgf/ folder. Place .sgf files there or specify a file path.",
+            )
+        } else {
+            e
+        }
+    })?;
+
+    let initial_game = load_game_from_path(playlist.current())?;
 
     // Setup terminal
     enable_raw_mode()?;
@@ -54,7 +86,7 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
 
     // Run app
-    let res = run_app(&mut terminal, &mut game_state);
+    let res = run_app(&mut terminal, initial_game, playlist);
 
     // Restore terminal
     disable_raw_mode()?;
@@ -74,69 +106,17 @@ fn main() -> Result<(), io::Error> {
 
 fn run_app(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    game_state: &mut game::GameState,
+    initial_game: game::GameState,
+    mut playlist: PlaylistManager,
 ) -> io::Result<()> {
-    let mut auto_play = true; // Start in play mode by default
-    let mut last_auto_advance = std::time::Instant::now();
-    let mut playback_speed = 1; // 1x, 2x, or 3x speed
+    let mut app_state = AppState::Playing {
+        game: initial_game,
+        auto_play: true,
+        playback_speed: 1,
+        last_auto_advance: Instant::now(),
+    };
 
-    loop {
-        // Calculate delay based on speed: 3000ms at 1x, 1500ms at 2x, 500ms at 3x (6x faster)
-        let auto_play_delay = std::time::Duration::from_millis(match playback_speed {
-            1 => 3000,
-            2 => 1500,
-            3 => 500,
-            _ => 3000,
-        });
-
-        terminal.draw(|f| ui::render_game(f, game_state, auto_play, playback_speed))?;
-
-        // Auto-play logic
-        if auto_play && last_auto_advance.elapsed() >= auto_play_delay {
-            if !game_state.next() {
-                auto_play = false; // Stop at end
-            }
-            last_auto_advance = std::time::Instant::now();
-        }
-
-        if event::poll(std::time::Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
-                    KeyCode::Char(' ') => {
-                        auto_play = !auto_play;
-                        last_auto_advance = std::time::Instant::now();
-                    }
-                    KeyCode::Left => {
-                        auto_play = false;
-                        game_state.previous();
-                    }
-                    KeyCode::Right => {
-                        auto_play = false;
-                        game_state.next();
-                    }
-                    KeyCode::Home => {
-                        auto_play = false;
-                        game_state.jump_to_start();
-                    }
-                    KeyCode::End => {
-                        auto_play = false;
-                        game_state.jump_to_end();
-                    }
-                    KeyCode::Char('l') | KeyCode::Char('L') => {
-                        game_state.toggle_looping();
-                    }
-                    KeyCode::Char('s') | KeyCode::Char('S') => {
-                        // Cycle through speeds: 1x -> 2x -> 3x -> 1x
-                        playback_speed = if playback_speed >= 3 {
-                            1
-                        } else {
-                            playback_speed + 1
-                        };
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
+    // Placeholder - will implement in Task 4
+    #[allow(clippy::todo)]
+    todo!("Implement main loop in Task 4");
 }
