@@ -1,3 +1,4 @@
+use crate::board_view::BoardView;
 use crate::game::{Board, GameState};
 use crate::parser::Color;
 use ratatui::{
@@ -24,7 +25,7 @@ pub fn render_game(frame: &mut Frame, game: &GameState, auto_play: bool, playbac
         .split(frame.area());
 
     render_header(frame, chunks[0], game);
-    render_board(frame, chunks[1], &game.board);
+    render_board(frame, chunks[1], &game.board, game.rotation());
     render_status(frame, chunks[3], game, auto_play, playback_speed);
 }
 
@@ -109,15 +110,16 @@ fn render_header(frame: &mut Frame, area: Rect, game: &GameState) {
     frame.render_widget(paragraph, area);
 }
 
-fn render_board(frame: &mut Frame, area: Rect, board: &Board) {
-    let size = board.size as usize;
+fn render_board(frame: &mut Frame, area: Rect, board: &Board, rotation: u8) {
+    let board_view = BoardView::new(board, rotation);
+    let size = board_view.size() as usize;
     let mut lines = Vec::new();
 
     for row in 0..size {
         let mut spans = Vec::new();
 
         for col in 0..size {
-            match board.get(row as u8, col as u8) {
+            match board_view.get(row as u8, col as u8) {
                 Some(Color::Black) => {
                     // Black stone emoji - naturally takes 2 char widths
                     spans.push(Span::styled("⚫", Style::default()));

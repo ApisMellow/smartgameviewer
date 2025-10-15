@@ -34,6 +34,7 @@ pub struct GameState {
     pub current_move: usize, // 0 = empty board, 1 = after first move, etc.
     pub properties: HashMap<String, Vec<String>>, // Game metadata
     looping_enabled: bool,   // Whether to loop back to start when reaching the end
+    rotation: u8,            // Board rotation: 0=0°, 1=90°, 2=180°, 3=270°
 }
 
 impl GameState {
@@ -44,6 +45,7 @@ impl GameState {
             current_move: 0,
             properties: HashMap::new(),
             looping_enabled: true, // Default to looping enabled
+            rotation: 0,
         }
     }
 
@@ -58,6 +60,7 @@ impl GameState {
             current_move: 0,
             properties,
             looping_enabled: true, // Default to looping enabled
+            rotation: 0,
         }
     }
 
@@ -80,11 +83,16 @@ impl GameState {
         self.looping_enabled = !self.looping_enabled;
     }
 
+    pub fn rotation(&self) -> u8 {
+        self.rotation
+    }
+
     pub fn next(&mut self) -> bool {
         if self.current_move >= self.moves.len() {
             // At the end of the game
             if self.looping_enabled {
-                // Loop back to the beginning
+                // Loop back to the beginning with 180° rotation
+                self.rotation = (self.rotation + 2) % 4;
                 self.jump_to_start();
                 return true;
             } else {

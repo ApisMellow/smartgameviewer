@@ -32,25 +32,40 @@ cargo run -- examples/AlphaGo_LeeSedol_game4.sgf
 
 ## Development
 
+This project uses [devenv](https://devenv.sh/) for development environment management.
+
+### Recommended Setup
+
 ```bash
-# Enter development environment
-devenv shell
+# Install devenv (if not already installed)
+# See https://devenv.sh/getting-started/
 
+# All cargo commands should be run through devenv shell:
+devenv shell cargo build
+devenv shell cargo test
+devenv shell cargo run -- examples/AlphaGo_LeeSedol_game4.sgf
+```
+
+### Common Development Commands
+
+```bash
 # Run with example
-cargo run -- examples/AlphaGo_LeeSedol_game4.sgf
-
-# Watch for changes and auto-rebuild
-cargo watch -x "run -- examples/AlphaGo_LeeSedol_game4.sgf"
+devenv shell cargo run -- examples/AlphaGo_LeeSedol_game4.sgf
 
 # Run tests
-cargo test
+devenv shell cargo test
 
 # Format code
-cargo fmt
+devenv shell cargo fmt
 
 # Run linter
-cargo clippy
+devenv shell cargo clippy
+
+# Build release version
+devenv shell cargo build --release
 ```
+
+**Note:** Using `devenv shell` ensures you have the correct Rust toolchain and all dependencies available.
 
 ## Roadmap
 
