@@ -116,7 +116,137 @@ fn run_app(
         last_auto_advance: Instant::now(),
     };
 
-    // Placeholder - will implement in Task 4
-    #[allow(clippy::todo)]
-    todo!("Implement main loop in Task 4");
+    loop {
+        match &mut app_state {
+            AppState::Playing {
+                game,
+                auto_play,
+                playback_speed,
+                last_auto_advance,
+            } => {
+                // Calculate delay based on speed
+                let auto_play_delay = std::time::Duration::from_millis(match *playback_speed {
+                    1 => 3000,
+                    2 => 1500,
+                    3 => 500,
+                    _ => 3000,
+                });
+
+                terminal.draw(|f| ui::render_game(f, game, *auto_play, *playback_speed))?;
+
+                // Auto-play logic
+                if *auto_play && last_auto_advance.elapsed() >= auto_play_delay {
+                    if game.current_move >= game.moves.len() {
+                        // Reached end of current game
+                        if playlist.has_next() {
+                            // Transition to next file
+                            let from_title = game.get_property("GN").unwrap_or("Game").to_string();
+
+                            if let Some(next_path) = playlist.peek_next() {
+                                match load_game_from_path(next_path) {
+                                    Ok(next_game) => {
+                                        let to_title = next_game
+                                            .get_property("GN")
+                                            .unwrap_or("Game")
+                                            .to_string();
+                                        playlist.next();
+
+                                        app_state = AppState::Transition {
+                                            from_title,
+                                            to_title,
+                                            start_time: Instant::now(),
+                                        };
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Failed to load next game: {}", e);
+                                        *auto_play = false;
+                                    }
+                                }
+                            }
+                        } else if game.is_looping_enabled() && !playlist.is_single_file() {
+                            // Last file, loop back to first
+                            let from_title = game.get_property("GN").unwrap_or("Game").to_string();
+                            playlist.reset();
+
+                            match load_game_from_path(playlist.current()) {
+                                Ok(first_game) => {
+                                    let to_title =
+                                        first_game.get_property("GN").unwrap_or("Game").to_string();
+
+                                    app_state = AppState::Transition {
+                                        from_title,
+                                        to_title,
+                                        start_time: Instant::now(),
+                                    };
+                                    continue;
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to reload first game: {}", e);
+                                    *auto_play = false;
+                                }
+                            }
+                        } else {
+                            // Last file + no loop OR single file
+                            // Let game handle its own looping
+                            let can_continue = game.next();
+                            if !can_continue {
+                                *auto_play = false;
+                            }
+                        }
+                    } else {
+                        // Normal move advancement
+                        game.next();
+                    }
+                    *last_auto_advance = Instant::now();
+                }
+
+                // Event handling
+                if event::poll(std::time::Duration::from_millis(100))? {
+                    if let Event::Key(key) = event::read()? {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                            KeyCode::Char(' ') => {
+                                *auto_play = !*auto_play;
+                                *last_auto_advance = Instant::now();
+                            }
+                            KeyCode::Left => {
+                                *auto_play = false;
+                                game.previous();
+                            }
+                            KeyCode::Right => {
+                                *auto_play = false;
+                                game.next();
+                            }
+                            KeyCode::Home => {
+                                *auto_play = false;
+                                game.jump_to_start();
+                            }
+                            KeyCode::End => {
+                                *auto_play = false;
+                                game.jump_to_end();
+                            }
+                            KeyCode::Char('l') | KeyCode::Char('L') => {
+                                game.toggle_looping();
+                            }
+                            KeyCode::Char('s') | KeyCode::Char('S') => {
+                                *playback_speed = if *playback_speed >= 3 {
+                                    1
+                                } else {
+                                    *playback_speed + 1
+                                };
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            AppState::Transition { .. } => {
+                // Placeholder - will implement in Task 5
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }
