@@ -193,3 +193,49 @@ fn test_board_rotates_on_loop() {
     assert_eq!(game.current_move, 0);
     assert_eq!(game.rotation(), 2); // 180 degrees
 }
+
+#[test]
+fn test_multiple_loop_rotations() {
+    let moves = vec![Move {
+        color: Color::Black,
+        position: Some((3, 3)),
+        comment: None,
+    }];
+    let mut game = GameState::new(19, moves);
+
+    assert_eq!(game.rotation(), 0);
+
+    // First loop
+    game.next(); // move 1
+    game.next(); // loop back
+    assert_eq!(game.rotation(), 2); // 180°
+
+    // Second loop
+    game.next(); // move 1
+    game.next(); // loop back
+    assert_eq!(game.rotation(), 0); // back to 0° (2+2=4, 4%4=0)
+
+    // Third loop
+    game.next(); // move 1
+    game.next(); // loop back
+    assert_eq!(game.rotation(), 2); // 180° again
+}
+
+#[test]
+fn test_no_rotation_when_looping_disabled() {
+    let moves = vec![Move {
+        color: Color::Black,
+        position: Some((3, 3)),
+        comment: None,
+    }];
+    let mut game = GameState::new(19, moves);
+    game.set_looping(false);
+
+    assert_eq!(game.rotation(), 0);
+
+    game.next(); // move 1
+    let continued = game.next(); // should NOT loop
+
+    assert_eq!(continued, false);
+    assert_eq!(game.rotation(), 0); // still 0°, no rotation
+}
