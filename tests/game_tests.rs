@@ -166,3 +166,30 @@ fn test_toggle_looping() {
     game.toggle_looping();
     assert_eq!(game.is_looping_enabled(), true);
 }
+
+#[test]
+fn test_board_rotates_on_loop() {
+    let moves = vec![
+        Move {
+            color: Color::Black,
+            position: Some((3, 3)),
+            comment: None,
+        },
+        Move {
+            color: Color::White,
+            position: Some((3, 4)),
+            comment: None,
+        },
+    ];
+    let mut game = GameState::new(19, moves);
+
+    assert_eq!(game.rotation(), 0);
+
+    // Advance to end and loop
+    game.next(); // move 1
+    game.next(); // move 2
+    game.next(); // should loop back and rotate
+
+    assert_eq!(game.current_move, 0);
+    assert_eq!(game.rotation(), 2); // 180 degrees
+}
