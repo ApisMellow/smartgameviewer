@@ -241,9 +241,41 @@ fn run_app(
                     }
                 }
             }
-            AppState::Transition { .. } => {
-                // Placeholder - will implement in Task 5
-                break;
+            AppState::Transition {
+                to_title,
+                start_time,
+                ..
+            } => {
+                let elapsed = start_time.elapsed();
+
+                terminal.draw(|f| ui::render_transition(f, to_title, elapsed))?;
+
+                // Check for quit during transition
+                if event::poll(std::time::Duration::from_millis(100))? {
+                    if let Event::Key(key) = event::read()? {
+                        if matches!(key.code, KeyCode::Char('q') | KeyCode::Esc) {
+                            return Ok(());
+                        }
+                    }
+                }
+
+                // After 3 seconds, load next game
+                if elapsed >= std::time::Duration::from_secs(3) {
+                    match load_game_from_path(playlist.current()) {
+                        Ok(next_game) => {
+                            app_state = AppState::Playing {
+                                game: next_game,
+                                auto_play: true,
+                                playback_speed: 1,
+                                last_auto_advance: Instant::now(),
+                            };
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to load game: {}", e);
+                            return Err(e);
+                        }
+                    }
+                }
             }
         }
     }
