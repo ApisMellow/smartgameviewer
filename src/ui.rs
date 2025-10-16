@@ -268,36 +268,48 @@ fn render_status(
             .unwrap()
             .as_millis();
 
-        // Star cycles through 5 frames at a rate matching the playback speed
-        // Animation cycle matches the move speed for visual rhythm
+        // Star cycles through 10 frames with brightness + characters
         let move_duration = match playback_speed {
             1 => 3000,
             2 => 1500,
             3 => 500,
             _ => 3000,
         };
-        let frame_duration = move_duration / 5; // 5 frames per move cycle
-        let animation_frame = (now / frame_duration as u128) % 5;
+        let frame_duration = move_duration / 10; // 10 frames per move cycle
+        let animation_frame = (now / frame_duration as u128) % 10;
 
-        // Smooth animation cycle: . -> + -> * -> ✦ -> * -> (repeat)
-        match animation_frame {
-            0 => "·", // Dim dot
-            1 => "+", // Small plus
-            2 => "*", // Asterisk
-            3 => "✦", // Bright star
-            4 => "*", // Asterisk (fade back)
-            _ => "·",
+        // Character + Color intensity progression
+        let (char_str, r, g, b, bold) = match animation_frame {
+            0 => ("·", 100, 100, 100, false),  // Very dim dot
+            1 => ("∙", 140, 140, 140, false),  // Slightly brighter dot
+            2 => ("+", 180, 160, 100, false),  // Dim plus, hint of yellow
+            3 => ("✢", 220, 200, 120, false),  // Four-pointed, medium bright
+            4 => ("*", 255, 230, 140, false),  // Asterisk, bright yellow
+            5 => ("✦", 255, 240, 180, true),   // Four-pointed star, very bright + bold
+            6 => ("★", 255, 250, 200, true),   // Filled star, peak brightness + bold
+            7 => ("✦", 255, 240, 180, true),   // Back down, still bold
+            8 => ("*", 255, 230, 140, false),  // Asterisk, bright
+            9 => ("+", 200, 180, 120, false),  // Plus, fading
+            _ => ("·", 100, 100, 100, false),
+        };
+
+        let mut style = Style::default().fg(RatatuiColor::Rgb(r, g, b));
+        if bold {
+            style = style.add_modifier(Modifier::BOLD);
         }
+
+        Span::styled(char_str, style)
     } else {
         // Show static dim dot when paused
-        "·"
+        Span::styled("·", Style::default().fg(RatatuiColor::DarkGray))
     };
 
     spans.push(Span::raw(" "));
     spans.push(Span::styled(
-        format!("{}x {}", playback_speed, star),
+        format!("{}x ", playback_speed),
         Style::default().fg(RatatuiColor::Cyan),
     ));
+    spans.push(star); // Add the animated star Span directly
 
     // Controls
     spans.push(Span::styled(
@@ -314,4 +326,36 @@ fn render_status(
         );
 
     frame.render_widget(paragraph, area);
+}
+
+pub fn render_transition(frame: &mut Frame, to_title: &str, elapsed: std::time::Duration) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(3), // Status bar for transition message
+        ])
+        .split(frame.area());
+
+    // Pulsing effect for transition text
+    let elapsed_ms = elapsed.as_millis();
+    let pulse_cycle = ((elapsed_ms % 1000) as f32 / 1000.0) * std::f32::consts::PI;
+    let brightness = pulse_cycle.sin().abs(); // 0.0 to 1.0
+
+    // Orange/yellow pulsing color
+    let r = 200 + (55.0 * brightness) as u8; // 200-255
+    let g = 150 + (80.0 * brightness) as u8; // 150-230
+    let b = 50;
+
+    let text = format!("Next: {}", to_title);
+    let paragraph = Paragraph::new(text)
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(RatatuiColor::Rgb(r, g, b)))
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(RatatuiColor::DarkGray)),
+        );
+
+    frame.render_widget(paragraph, chunks[1]);
 }
