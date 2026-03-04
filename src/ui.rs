@@ -280,16 +280,16 @@ fn render_status(
 
         // Character + Color intensity progression
         let (char_str, r, g, b, bold) = match animation_frame {
-            0 => ("·", 100, 100, 100, false),  // Very dim dot
-            1 => ("∙", 140, 140, 140, false),  // Slightly brighter dot
-            2 => ("+", 180, 160, 100, false),  // Dim plus, hint of yellow
-            3 => ("✢", 220, 200, 120, false),  // Four-pointed, medium bright
-            4 => ("*", 255, 230, 140, false),  // Asterisk, bright yellow
-            5 => ("✦", 255, 240, 180, true),   // Four-pointed star, very bright + bold
-            6 => ("★", 255, 250, 200, true),   // Filled star, peak brightness + bold
-            7 => ("✦", 255, 240, 180, true),   // Back down, still bold
-            8 => ("*", 255, 230, 140, false),  // Asterisk, bright
-            9 => ("+", 200, 180, 120, false),  // Plus, fading
+            0 => ("·", 100, 100, 100, false), // Very dim dot
+            1 => ("∙", 140, 140, 140, false), // Slightly brighter dot
+            2 => ("+", 180, 160, 100, false), // Dim plus, hint of yellow
+            3 => ("✢", 220, 200, 120, false), // Four-pointed, medium bright
+            4 => ("*", 255, 230, 140, false), // Asterisk, bright yellow
+            5 => ("✦", 255, 240, 180, true),  // Four-pointed star, very bright + bold
+            6 => ("★", 255, 250, 200, true),  // Filled star, peak brightness + bold
+            7 => ("✦", 255, 240, 180, true),  // Back down, still bold
+            8 => ("*", 255, 230, 140, false), // Asterisk, bright
+            9 => ("+", 200, 180, 120, false), // Plus, fading
             _ => ("·", 100, 100, 100, false),
         };
 

@@ -4,7 +4,7 @@
 
 ### Colors & Styling
 - [ ] Add color gradients to black and white stones
-- [ ] Implement board background coloring (wood texture simulation)
+- [x] Implement board background coloring (wood texture simulation)
 - [ ] Add colored borders for the active/last move
 - [ ] Theme support (light/dark modes)
 

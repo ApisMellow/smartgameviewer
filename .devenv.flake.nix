@@ -1,20 +1,20 @@
 {
   inputs =
     let
-      version = "1.9.1";
+      version = "1.10.0";
 system = "aarch64-darwin";
-devenv_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
-devenv_dotfile = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish/.devenv";
+devenv_root = "/Users/david/dev/smartgameviewer";
+devenv_dotfile = "/Users/david/dev/smartgameviewer/.devenv";
 devenv_dotfile_path = ./.devenv;
 devenv_tmpdir = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/";
-devenv_runtime = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/devenv-61082ff";
+devenv_runtime = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/devenv-e0af1c4";
 devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 container_name = null;
 active_profiles = [ ];
 hostname = "Macmini.lan";
 username = "david";
-git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
+git_root = "/Users/david/dev/smartgameviewer";
 
         in {
         git-hooks.url = "github:cachix/git-hooks.nix";
@@ -28,20 +28,20 @@ git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
 
       outputs = { nixpkgs, ... }@inputs:
         let
-          version = "1.9.1";
+          version = "1.10.0";
 system = "aarch64-darwin";
-devenv_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
-devenv_dotfile = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish/.devenv";
+devenv_root = "/Users/david/dev/smartgameviewer";
+devenv_dotfile = "/Users/david/dev/smartgameviewer/.devenv";
 devenv_dotfile_path = ./.devenv;
 devenv_tmpdir = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/";
-devenv_runtime = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/devenv-61082ff";
+devenv_runtime = "/var/folders/j2/q4mq45sx61z59grjls29_t6r0000gn/T/devenv-e0af1c4";
 devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 container_name = null;
 active_profiles = [ ];
 hostname = "Macmini.lan";
 username = "david";
-git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
+git_root = "/Users/david/dev/smartgameviewer";
 
             devenv =
             if builtins.pathExists (devenv_dotfile_path + "/devenv.json")
@@ -82,7 +82,13 @@ git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
                 then ./. + (builtins.substring 1 255 path)
                 else ./. + (builtins.substring 1 255 path) + "/devenv.nix"
                 else if lib.hasPrefix "../" path
-                then throw "devenv: ../ is not supported for imports"
+                then
+                # For parent directory paths, concatenate with /.
+                # ./. refers to the directory containing this file (project root)
+                # So ./. + "/../shared" = <project-root>/../shared
+                  if lib.hasSuffix ".nix" path
+                  then ./. + "/${path}"
+                  else ./. + "/${path}/devenv.nix"
                 else
                   let
                     paths = lib.splitString "/" path;
@@ -106,13 +112,13 @@ git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
                     _module.args.pkgs = pkgs.appendOverlays (config.overlays or [ ]);
                   })
                   (inputs.devenv.modules + /top-level.nix)
-                  {
-                    devenv.cliVersion = version;
-                    devenv.root = devenv_root;
-                    devenv.dotfile = devenv_dotfile;
-                  }
                   ({ options, ... }: {
                     config.devenv = lib.mkMerge [
+                      {
+                        cliVersion = version;
+                        root = devenv_root;
+                        dotfile = devenv_dotfile;
+                      }
                       (pkgs.lib.optionalAttrs (builtins.hasAttr "tmpdir" options.devenv) {
                         tmpdir = devenv_tmpdir;
                       })
@@ -128,9 +134,9 @@ git_root = "/Users/david/dev/smartgameviewer/.worktrees/visual-polish";
                     ];
                   })
                   ({ options, ... }: {
-                    config.git = lib.mkMerge [
+                    config = lib.mkMerge [
                       (pkgs.lib.optionalAttrs (builtins.hasAttr "git" options) {
-                        root = git_root;
+                        git.root = git_root;
                       })
                     ];
                   })

@@ -20,6 +20,9 @@ devenv.local.nix
 *.swo
 *~
 
+# Logs
+err.log
+
 # OS
 .DS_Store
 Thumbs.db

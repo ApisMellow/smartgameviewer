@@ -239,3 +239,131 @@ fn test_no_rotation_when_looping_disabled() {
     assert_eq!(continued, false);
     assert_eq!(game.rotation(), 0); // still 0°, no rotation
 }
+
+#[test]
+fn test_with_properties_and_get_property() {
+    let mut props = std::collections::HashMap::new();
+    props.insert("PB".to_string(), vec!["Alice".to_string()]);
+    props.insert("PW".to_string(), vec!["Bob".to_string()]);
+    props.insert("GN".to_string(), vec!["My Game".to_string()]);
+
+    let game = GameState::with_properties(19, vec![], props);
+
+    assert_eq!(game.get_property("PB"), Some("Alice"));
+    assert_eq!(game.get_property("PW"), Some("Bob"));
+    assert_eq!(game.get_property("GN"), Some("My Game"));
+    assert_eq!(game.get_property("MISSING"), None);
+}
+
+#[test]
+fn test_previous_at_move_zero() {
+    let moves = vec![Move {
+        color: Color::Black,
+        position: Some((3, 3)),
+        comment: None,
+    }];
+    let mut game = GameState::new(19, moves);
+
+    // At move 0, previous should return false and board stays empty
+    let result = game.previous();
+    assert_eq!(result, false);
+    assert_eq!(game.current_move, 0);
+    assert_eq!(game.board.get(3, 3), None);
+}
+
+#[test]
+fn test_next_with_pass_move() {
+    let moves = vec![
+        Move {
+            color: Color::Black,
+            position: None, // pass
+            comment: None,
+        },
+        Move {
+            color: Color::White,
+            position: Some((3, 3)),
+            comment: None,
+        },
+    ];
+    let mut game = GameState::new(19, moves);
+
+    // Pass move: current_move increments but no stone placed
+    game.next();
+    assert_eq!(game.current_move, 1);
+    // Board should still be empty - pass places no stone
+    for r in 0..19u8 {
+        for c in 0..19u8 {
+            assert_eq!(game.board.get(r, c), None);
+        }
+    }
+
+    // Next move places a stone
+    game.next();
+    assert_eq!(game.current_move, 2);
+    assert_eq!(game.board.get(3, 3), Some(Color::White));
+}
+
+#[test]
+fn test_jump_to_end_with_zero_moves() {
+    let game_moves: Vec<Move> = vec![];
+    let mut game = GameState::new(19, game_moves);
+
+    game.jump_to_end();
+    assert_eq!(game.current_move, 0);
+    // Board should still be empty
+    assert_eq!(game.board.get(0, 0), None);
+}
+
+#[test]
+fn test_jump_to_start_when_already_at_start() {
+    let moves = vec![Move {
+        color: Color::Black,
+        position: Some((3, 3)),
+        comment: None,
+    }];
+    let mut game = GameState::new(19, moves);
+
+    // Already at start - should be idempotent
+    game.jump_to_start();
+    assert_eq!(game.current_move, 0);
+    assert_eq!(game.board.get(3, 3), None);
+}
+
+#[test]
+fn test_board_clear() {
+    let mut board = Board::new(19);
+    board.set(5, 5, Color::Black);
+    assert_eq!(board.get(5, 5), Some(Color::Black));
+
+    board.clear(5, 5);
+    assert_eq!(board.get(5, 5), None);
+}
+
+#[test]
+fn test_non_19x19_board() {
+    let moves = vec![
+        Move {
+            color: Color::Black,
+            position: Some((0, 0)),
+            comment: None,
+        },
+        Move {
+            color: Color::White,
+            position: Some((8, 8)),
+            comment: None,
+        },
+    ];
+    let mut game = GameState::new(9, moves);
+
+    assert_eq!(game.board.size, 9);
+
+    game.next();
+    assert_eq!(game.board.get(0, 0), Some(Color::Black));
+
+    game.next();
+    assert_eq!(game.board.get(8, 8), Some(Color::White));
+
+    game.previous();
+    assert_eq!(game.board.get(8, 8), None);
+    assert_eq!(game.board.get(0, 0), Some(Color::Black));
+}

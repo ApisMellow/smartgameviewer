@@ -28,7 +28,7 @@
 - [ ] Verify stopped state: star static, can still navigate, Q to quit
 
 ### Single File Mode (Backwards Compatibility)
-- [ ] Run with file arg: `cargo run sgf/game1.sgf`
+- [ ] Run with file arg: `cargo run -- sgf/game1.sgf`
 - [ ] Verify works exactly as before (no transitions)
 - [ ] Verify looping works on single file
 
@@ -43,5 +43,5 @@
 
 ### Edge Cases
 - [ ] Empty ./sgf folder → clear error message
-- [ ] Invalid SGF file → skips it gracefully
+- [ ] Invalid SGF file → stops auto-play and shows error
 - [ ] Press L to toggle looping during multi-file playback

@@ -2,7 +2,7 @@
 
 **Date:** 2025-10-14
 **Feature:** Board Rotation on Loop
-**Binary Location:** `/Users/david/dev/smartgameviewer/.worktrees/board-rotation/target/release/smartgameviewer`
+**Binary Location:** `target/release/smartgameviewer`
 
 ## Build Status
 
@@ -12,8 +12,8 @@
 
 ## Test Suite Results
 
-- **Total Tests Run:** 21
-- **Tests Passed:** 21
+- **Total Tests Run:** 27
+- **Tests Passed:** 27
 - **Tests Failed:** 0
 - **Test Categories:**
   - Board View Tests: 3/3 passed
@@ -21,6 +21,8 @@
   - Integration Tests: 2/2 passed
   - Parser Tests: 4/4 passed
   - UI Tests: 3/3 passed
+  - Playlist Tests: 4/4 passed
+  - Playlist Integration Tests: 2/2 passed
 
 ### Key Test Coverage
 
@@ -70,9 +72,7 @@ The following manual tests should be performed by a human operator using the TUI
   - [ ] Press Right arrow to advance past end
   - [ ] Verify board rotates 180° when looping occurs
 - [ ] **Speed Testing:** Test rotation at different playback speeds
-  - [ ] Press '1' for 1x speed - rotation should work
-  - [ ] Press '2' for 2x speed - rotation should work
-  - [ ] Press '3' for 3x speed - rotation should work
+  - [ ] Press 'S' to cycle playback speed (1x → 2x → 3x → 1x) - rotation should work at all speeds
 - [ ] **Visual Quality:** Verify rendering quality
   - [ ] Board grid lines display correctly in both orientations
   - [ ] Stone emojis (⚫⚪) render clearly in both orientations

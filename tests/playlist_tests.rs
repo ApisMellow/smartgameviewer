@@ -100,3 +100,72 @@ fn test_playlist_reset() {
     assert_eq!(initial, after_reset);
     assert_eq!(after_reset, "game1");
 }
+
+#[test]
+fn test_playlist_nonexistent_path() {
+    let result = PlaylistManager::new(Some("/tmp/does_not_exist_xyz_smartgameviewer"));
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_playlist_empty_directory() {
+    // Create a temp directory with no .sgf files
+    let dir = std::env::temp_dir().join("smartgameviewer_empty_test");
+    std::fs::create_dir_all(&dir).unwrap();
+    // Make sure no .sgf files exist
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().map(|e| e == "sgf").unwrap_or(false) {
+            std::fs::remove_file(path).unwrap();
+        }
+    }
+
+    let result = PlaylistManager::new(Some(dir.to_str().unwrap()));
+    assert!(result.is_err());
+
+    // Clean up
+    let _ = std::fs::remove_dir(&dir);
+}
+
+#[test]
+fn test_peek_next() {
+    let mut playlist = PlaylistManager::new(Some("test_sgf")).unwrap();
+
+    // peek_next should return second file without advancing
+    let peeked = playlist.peek_next();
+    assert!(peeked.is_some());
+    let peeked_name = peeked
+        .unwrap()
+        .file_stem()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    assert_eq!(peeked_name, "game2");
+
+    // Current should still be game1
+    let current_name = playlist
+        .current()
+        .file_stem()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    assert_eq!(current_name, "game1");
+
+    // Advance to end
+    while playlist.next() {}
+
+    // peek_next at end should return None
+    assert_eq!(playlist.peek_next(), None);
+}
+
+#[test]
+fn test_next_returns_false_at_end() {
+    let mut playlist = PlaylistManager::new(Some("test_sgf")).unwrap();
+
+    // Exhaust playlist
+    while playlist.next() {}
+
+    // Further next() should return false
+    assert_eq!(playlist.next(), false);
+    assert_eq!(playlist.next(), false);
+}
